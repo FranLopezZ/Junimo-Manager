@@ -1,0 +1,7 @@
+# El instalador de Linux debe conservar finales de línea LF aunque se clone en Windows
+*.sh text eol=lf
+*.cs text
+*.axaml text
+*.json text
+*.png binary
+*.ico binary

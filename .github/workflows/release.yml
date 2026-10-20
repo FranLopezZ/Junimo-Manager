@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # necesario para crear la release y adjuntar archivos
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Si la release ya se publicó a mano (con los paquetes ya compilados y probados), no se vuelve a construir ni a pisar.
+      - name: Comprobar si la release ya existe
+        id: check
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.check.outputs.exists == 'false'
+        with:
+          global-json-file: global.json
+
+      - name: Tests
+        if: steps.check.outputs.exists == 'false'
+        run: dotnet test --configuration Release
+
+      - name: Construir paquetes
+        if: steps.check.outputs.exists == 'false'
+        shell: pwsh
+        run: |
+          $version = $env:TAG.TrimStart("v")
+          ./scripts/build-release.ps1 -Version $version
+
+      - name: Comprobar permisos del paquete Linux
+        if: steps.check.outputs.exists == 'false'
+        run: unzip -Z release/*-linux-x64.zip
+
+      - name: Crear la release
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          gh release create "$TAG" release/*.zip --title "JunimoManager-$TAG" --generate-notes

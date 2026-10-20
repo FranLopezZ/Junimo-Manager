@@ -1,0 +1,29 @@
+# Compilación
+bin/
+obj/
+publish/
+
+# Paquetes generados: se publican en GitHub Releases, no en el repositorio
+release/
+
+# IDE / sistema
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.DotSettings.user
+Thumbs.db
+.DS_Store
+
+
+# Temporales y capturas de depuración
+*.tmp
+*.log
+*.tmp.json
+shot*.png
+
+# Datos locales que nunca deben subirse
+settings.json
+profiles.json
+downloads/

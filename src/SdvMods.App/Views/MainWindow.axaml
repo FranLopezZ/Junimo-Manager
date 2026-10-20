@@ -1,0 +1,614 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SdvMods.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="720"
+        x:Class="SdvMods.App.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Width="1100" Height="720" MinWidth="720" MinHeight="520"
+        Icon="/Assets/app.ico"
+        Title="Junimo Manager">
+
+    <Window.Styles>
+        <Style Selector="Button">
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="MinHeight" Value="38" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="MinHeight" Value="38" />
+        </Style>
+        <Style Selector="TextBlock.h">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.dim">
+            <Setter Property="Opacity" Value="0.65" />
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#18808080" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style Selector="Border.warn">
+            <Setter Property="Background" Value="#33E0A030" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <!-- Controller mode (Steam Deck Gaming Mode): bigger targets and a clearly visible focus ring -->
+        <Style Selector="Window.pad Button">
+            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="Padding" Value="20,10" />
+        </Style>
+        <Style Selector="Window.pad TabItem">
+            <Setter Property="MinHeight" Value="56" />
+        </Style>
+        <Style Selector="Window.pad TextBox">
+            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="FontSize" Value="18" />
+        </Style>
+        <Style Selector="Window.pad TextBlock">
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Junimo Manager" FontSize="22" FontWeight="Bold" />
+                    <TextBlock Classes="dim" Text="{Binding AppVersionText}" VerticalAlignment="Bottom" Margin="0,0,0,3" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock Classes="dim" Text="{Binding ActiveProfileText}" />
+                    <TextBlock Classes="dim" Text="{Binding SyncStatusText}" IsVisible="{Binding SyncVisible}" />
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Content="▶  Jugar" Command="{Binding PlayCommand}" IsVisible="{Binding CanPlay}" Background="#2E7D32" />
+                <Button Content="Sincronizar" Command="{Binding SyncNowCommand}" />
+                <Button Content="Buscar actualizaciones" Command="{Binding CheckUpdatesCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Banners -->
+        <StackPanel Grid.Row="1" Spacing="8">
+            <Border Classes="warn" IsVisible="{Binding !GameFound}">
+                <TextBlock TextWrapping="Wrap" Text="No se encontró la carpeta de Stardew Valley. Ve a Ajustes para detectarla o elegirla." />
+            </Border>
+            <Border Classes="warn" IsVisible="{Binding SmapiBannerVisible}">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding SmapiBannerText}" />
+                    <Button Grid.Column="1" Content="{Binding SmapiActionText}" Command="{Binding InstallSmapiCommand}" IsEnabled="{Binding !IsBusy}" />
+                    <Button Grid.Column="2" Content="Web de SMAPI" Command="{Binding OpenSmapiPageCommand}" />
+                </Grid>
+            </Border>
+            <Border Classes="warn" IsVisible="{Binding NewVersionAvailable}">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding NewVersionText}" />
+                    <Button Grid.Column="1" Content="Actualizar ahora" Command="{Binding UpdateAppNowCommand}" IsEnabled="{Binding !IsBusy}" Background="#2E7D32" />
+                    <Button Grid.Column="2" Content="Novedades" Command="{Binding OpenReleaseNotesCommand}" />
+                </Grid>
+            </Border>
+            <Border Classes="warn" IsVisible="{Binding HasPendingNew}">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding PendingNewText}" />
+                    <Button Grid.Column="1" Content="Instalarlos uno a uno" Command="{Binding InstallNexusQueueCommand}" IsEnabled="{Binding !IsBusy}" />
+                    <Button Grid.Column="2" Content="Ver lista" Click="OnShowUpdates" />
+                </Grid>
+            </Border>
+        </StackPanel>
+
+        <TabControl x:Name="MainTabs" Grid.Row="2" SelectedIndex="{Binding SelectedTab}">
+
+            <!-- ============ MODS ============ -->
+            <TabItem Header="Mods">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*" RowSpacing="8" Margin="0,10,0,0">
+
+                    <!-- Profile switcher -->
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                        <TextBlock Classes="h" Text="Perfil" VerticalAlignment="Center" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfileChoice}"
+                                  HorizontalAlignment="Stretch" IsEnabled="{Binding !IsBusy}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ProfileItem"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Grid.Column="2" Content="Duplicar" Command="{Binding DuplicateActiveProfileCommand}" IsEnabled="{Binding HasActiveProfile}" />
+                        <Button Grid.Column="3" Content="Instalar desde archivo…" Command="{Binding InstallFromFileCommand}" />
+                        <Button Grid.Column="4" Content="Recargar" Command="{Binding RefreshModsCommand}" />
+                    </Grid>
+
+                    <Expander Grid.Row="1" Header="Nuevo perfil…">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,6,0,0">
+                            <TextBox Text="{Binding NewProfileName}" PlaceholderText="Nombre del nuevo perfil (p. ej. Vanilla)" />
+                            <Button Grid.Column="1" Content="Vacío" Command="{Binding CreateEmptyProfileCommand}" />
+                            <Button Grid.Column="2" Content="Con mis mods actuales" Command="{Binding CreateProfileCommand}" />
+                        </Grid>
+                    </Expander>
+
+                    <Border Grid.Row="2" Classes="warn" IsVisible="{Binding NoProfiles}">
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="Aún no tienes perfiles. Crea uno desde «Nuevo perfil…»: un perfil es una selección de mods que puedes activar, cambiar y compartir." />
+                    </Border>
+
+                    <!-- Search, scope and global switches -->
+                    <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                        <CheckBox IsChecked="{Binding AllVisibleSelected}" Content="Todos" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding ModFilterText}" PlaceholderText="Buscar entre tus mods…" />
+                        <ComboBox Grid.Column="2" SelectedIndex="{Binding ModScopeIndex}" IsVisible="{Binding HasActiveProfile}" MinWidth="190">
+                            <ComboBoxItem Content="Este perfil" />
+                            <ComboBoxItem Content="Todos los instalados" />
+                        </ComboBox>
+                        <Button Grid.Column="3" Content="Activar todos" Command="{Binding EnableAllCommand}" IsEnabled="{Binding !IsBusy}" />
+                        <Button Grid.Column="4" Content="Desactivar todos" Command="{Binding DisableAllCommand}" IsEnabled="{Binding !IsBusy}" />
+                    </Grid>
+
+                    <!-- Actions on the selected mods -->
+                    <Border Grid.Row="4" Classes="card" IsVisible="{Binding HasSelection}">
+                        <WrapPanel>
+                            <TextBlock Text="{Binding SelectionText}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <Button Content="Activar" Command="{Binding EnableSelectedCommand}" Margin="0,0,8,0" />
+                            <Button Content="Desactivar" Command="{Binding DisableSelectedCommand}" Margin="0,0,8,0" />
+                            <Button Content="Añadir al perfil" Command="{Binding AddSelectedToProfileCommand}" IsVisible="{Binding HasActiveProfile}" Margin="0,0,8,0" />
+                            <Button Content="Quitar del perfil" Command="{Binding RemoveSelectedFromProfileCommand}" IsVisible="{Binding HasActiveProfile}" Margin="0,0,8,0" />
+                            <Button Content="{Binding BatchUninstallText}" Command="{Binding UninstallSelectedCommand}" Margin="0,0,8,0" />
+                            <Button Content="Quitar selección" Command="{Binding ClearSelectionCommand}" />
+                        </WrapPanel>
+                    </Border>
+
+                    <Border Grid.Row="5" Classes="warn" IsVisible="{Binding HasWarnings}">
+                        <ItemsControl ItemsSource="{Binding Warnings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="6">
+                        <ItemsControl ItemsSource="{Binding Mods}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ModItem">
+                                    <Border Classes="card" Margin="0,0,0,6">
+                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10">
+                                            <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" />
+                                            <Border Grid.Column="1" Width="64" Height="64" CornerRadius="6" ClipToBounds="True" Background="#22808080">
+                                                <Panel>
+                                                    <TextBlock Text="{Binding Initial}" FontSize="26" Opacity="0.4" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding NoThumb}" />
+                                                    <Image Source="{Binding Thumb}" Stretch="UniformToFill" />
+                                                </Panel>
+                                            </Border>
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Classes="h" Text="{Binding Name}" />
+                                                    <TextBlock Classes="dim" Text="{Binding Version}" VerticalAlignment="Bottom" />
+                                                </StackPanel>
+                                                <TextBlock Classes="dim" Text="{Binding Author}" />
+                                                <TextBlock Classes="dim" Text="{Binding Description}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="3" Text="{Binding StateText}" VerticalAlignment="Center" Classes="dim" />
+                                            <Button Grid.Column="4" Content="Detalles" Command="{Binding DetailCommand}" VerticalAlignment="Center" />
+                                            <Button Grid.Column="5" Content="{Binding ToggleText}" Command="{Binding ToggleCommand}" MinWidth="100" VerticalAlignment="Center" />
+                                            <Button Grid.Column="6" Content="{Binding MembershipText}" Command="{Binding MembershipCommand}" IsVisible="{Binding HasProfile}" MinWidth="80" VerticalAlignment="Center" />
+                                            <Button Grid.Column="7" Content="{Binding UninstallText}" Command="{Binding UninstallCommand}" MinWidth="100" VerticalAlignment="Center" />
+                                            <Button Grid.Column="8" Content="⚙" Command="{Binding ConfigCommand}" IsVisible="{Binding HasConfig}" MinWidth="44" VerticalAlignment="Center" ToolTip.Tip="Configurar" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ EXPLORAR ============ -->
+            <TabItem Header="Explorar">
+                <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="0,10,0,0">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                        <TextBox Text="{Binding ExploreQuery}" PlaceholderText="Buscar mods en Nexus (p. ej. «farm animals», «Content Patcher»)…">
+                            <TextBox.KeyBindings>
+                                <KeyBinding Gesture="Enter" Command="{Binding ExploreSearchCommand}" />
+                            </TextBox.KeyBindings>
+                        </TextBox>
+                        <ComboBox Grid.Column="1" SelectedIndex="{Binding ExploreSortIndex}" MinWidth="220">
+                            <ComboBoxItem Content="Más populares / relevancia" />
+                            <ComboBoxItem Content="Más descargados" />
+                            <ComboBoxItem Content="Actualizados recientemente" />
+                            <ComboBoxItem Content="Novedades" />
+                        </ComboBox>
+                        <Button Grid.Column="2" Content="Buscar" Command="{Binding ExploreSearchCommand}" />
+                    </Grid>
+                    <TextBlock Grid.Row="1" Classes="dim" Margin="0,8,0,0" Text="{Binding ExploreInfo}" />
+                    <ScrollViewer Grid.Row="2" Margin="0,8,0,0">
+                        <StackPanel>
+                            <ItemsControl ItemsSource="{Binding ExploreItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ExploreItem">
+                                        <Border Classes="card" Margin="0,0,0,6">
+                                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+                                                <Border Width="96" Height="64" CornerRadius="6" ClipToBounds="True" Background="#22808080">
+                                                    <Panel>
+                                                        <TextBlock Text="{Binding Initial}" FontSize="26" Opacity="0.4" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding NoThumb}" />
+                                                        <Image Source="{Binding Thumb}" Stretch="UniformToFill" />
+                                                    </Panel>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Classes="h" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Classes="dim" Text="{Binding Author}" VerticalAlignment="Bottom" />
+                                                    </StackPanel>
+                                                    <TextBlock Classes="dim" Text="{Binding Summary}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Classes="dim" Text="{Binding Stats}" />
+                                                </StackPanel>
+                                                <Button Grid.Column="2" Content="Ver" Command="{Binding DetailCommand}" VerticalAlignment="Center" MinWidth="80" />
+                                                <Button Grid.Column="3" Content="{Binding InstallText}" Command="{Binding InstallCommand}" VerticalAlignment="Center" MinWidth="110" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Content="Cargar más" Command="{Binding ExploreMoreCommand}" IsVisible="{Binding CanLoadMore}" IsEnabled="{Binding !ExploreLoading}" HorizontalAlignment="Center" Margin="0,8" />
+                        </StackPanel>
+                    </ScrollViewer>
+                    <ProgressBar Grid.Row="3" IsIndeterminate="True" IsVisible="{Binding ExploreLoading}" />
+                </Grid>
+            </TabItem>
+
+            <!-- ============ PERFILES ============ -->
+            <TabItem Header="Perfiles">
+                <Grid ColumnDefinitions="320,*" ColumnSpacing="16" Margin="0,10,0,0">
+                    <Grid RowDefinitions="*,Auto">
+                        <ListBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ProfileItem">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel>
+                                            <TextBlock Classes="h" Text="{Binding Name}" />
+                                            <TextBlock Classes="dim" Text="{Binding Summary}" />
+                                            <TextBlock Classes="dim" Text="{Binding SyncText}" FontSize="12" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="{Binding ActiveText}" VerticalAlignment="Center" Foreground="#5CB85C" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <StackPanel Grid.Row="1" Margin="0,10,0,0" Spacing="8">
+                            <TextBox Text="{Binding NewProfileName}" PlaceholderText="Nombre del nuevo perfil (p. ej. Vanilla)" />
+                            <Button Content="Crear perfil con mis mods actuales" Command="{Binding CreateProfileCommand}" HorizontalAlignment="Stretch" />
+                            <Border Classes="card" IsVisible="{Binding SyncVisible}">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Classes="h" Text="Sincronización" />
+                                    <TextBlock Classes="dim" Text="{Binding SyncStatusText}" TextWrapping="Wrap" />
+                                    <WrapPanel>
+                                        <Button Content="Comprobar" Command="{Binding CheckSyncCommand}" Margin="0,0,6,6" />
+                                        <Button Content="Subir" Command="{Binding PushSyncCommand}" Margin="0,0,6,6" />
+                                        <Button Content="Bajar" Command="{Binding PullSyncCommand}" Margin="0,0,6,6" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                            <Expander Header="Importar un perfil de un amigo">
+                                <StackPanel Spacing="8">
+                                    <Button Content="Importar archivo (.junimo)…" Command="{Binding ImportProfileFileCommand}" HorizontalAlignment="Stretch" />
+                                    <TextBox Text="{Binding ImportCode}" PlaceholderText="Pega aquí el código (JUNIMO1:…)" />
+                                    <Button Content="Importar código" Command="{Binding ImportProfileCodeCommand}" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBox Text="{Binding RenameText}" />
+                            <Button Grid.Column="1" Content="Renombrar" Command="{Binding RenameProfileCommand}" />
+                        </Grid>
+                        <WrapPanel Grid.Row="1" Margin="0,10,0,10">
+                            <Button Content="Activar este perfil" Command="{Binding ActivateProfileCommand}" Margin="0,0,8,8" />
+                            <Button Content="Guardar mis mods actuales aquí" Command="{Binding SaveCurrentToProfileCommand}" Margin="0,0,8,8" />
+                            <Button Content="Duplicar" Command="{Binding DuplicateProfileCommand}" Margin="0,0,8,8" />
+                            <Button Content="Eliminar" Command="{Binding DeleteProfileCommand}" Margin="0,0,8,8" />
+                            <CheckBox IsChecked="{Binding SelectedProfileSyncEnabled}" Content="Sincronizar este perfil" IsVisible="{Binding SyncVisible}" Margin="0,0,8,8" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding SelectedProfileSyncText}" Classes="dim" IsVisible="{Binding SyncVisible}" Margin="0,0,12,8" VerticalAlignment="Center" />
+                            <Button Content="Resolver conflicto…" Command="{Binding ResolveSelectedConflictCommand}" IsVisible="{Binding SelectedProfileInConflict}" Background="#B26A00" Margin="0,0,8,8" />
+                            <Button Content="Copiar código para compartir" Command="{Binding CopyProfileCodeCommand}" Margin="0,0,8,8" />
+                            <Button Content="Guardar como archivo…" Command="{Binding ExportProfileFileCommand}" Margin="0,0,8,8" />
+                            <CheckBox IsChecked="{Binding ExportIncludeConfigs}" Content="Incluir la configuración de los mods en el archivo" Margin="0,0,8,8" VerticalAlignment="Center" />
+                        </WrapPanel>
+                        <Border Grid.Row="2" Classes="card">
+                            <Grid RowDefinitions="Auto,Auto,*">
+                                <Border Classes="warn" Margin="0,0,0,10" IsVisible="{Binding HasMissing}">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Classes="h" Text="Mods del perfil que no se pudieron instalar solos:" />
+                                        <ItemsControl ItemsSource="{Binding MissingFromProfile}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Grid.Row="1" Classes="h" Text="Mods del perfil" Margin="0,0,0,6" />
+                                <ScrollViewer Grid.Row="2">
+                                    <ItemsControl ItemsSource="{Binding SelectedProfileMods}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" /></DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ ACTUALIZACIONES ============ -->
+            <TabItem Header="{Binding UpdatesTabHeader}">
+                <Grid RowDefinitions="Auto,*" Margin="0,10,0,0">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Buscar actualizaciones" Command="{Binding CheckUpdatesCommand}" />
+                        <Button Content="Actualizar todas las automáticas" Command="{Binding UpdateAllCommand}" IsEnabled="{Binding HasUpdates}" />
+                        <Button Content="Instalar los de Nexus uno a uno" Command="{Binding InstallNexusQueueCommand}" IsEnabled="{Binding HasUpdates}" />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Classes="dim" TextWrapping="Wrap" Margin="0,0,0,8"
+                                       IsVisible="{Binding !HasUpdates}"
+                                       Text="Nada pendiente. Pulsa «Buscar actualizaciones» para comprobar tus mods." />
+                            <ItemsControl ItemsSource="{Binding Updates}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:UpdateItem">
+                                        <Border Classes="card" Margin="0,0,0,6">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                <StackPanel>
+                                                    <TextBlock Classes="h" Text="{Binding Name}" />
+                                                    <TextBlock Text="{Binding VersionText}" />
+                                                    <TextBlock Classes="dim" Text="{Binding MethodText}" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="{Binding ActionText}" Command="{Binding ActionCommand}" MinWidth="150" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ AJUSTES ============ -->
+            <TabItem Header="Ajustes">
+                <ScrollViewer Margin="0,10,0,0">
+                    <StackPanel Spacing="16" MaxWidth="820" HorizontalAlignment="Left">
+
+                        <Border Classes="card"><StackPanel Spacing="8">
+                            <TextBlock Classes="h" Text="Juego" />
+                            <TextBlock Classes="dim" TextWrapping="Wrap" Text="Carpeta de Stardew Valley (la que contiene «Stardew Valley.dll»)." />
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                <TextBox Text="{Binding GamePath}" />
+                                <Button Grid.Column="1" Content="Detectar" Command="{Binding DetectGameCommand}" />
+                                <Button Grid.Column="2" Content="Elegir…" Command="{Binding BrowseGameCommand}" />
+                            </Grid>
+                        </StackPanel></Border>
+
+                        <Border Classes="card"><StackPanel Spacing="8">
+                            <TextBlock Classes="h" Text="Junimo Manager" />
+                            <TextBlock TextWrapping="Wrap" Text="{Binding AppUpdateInfo}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Buscar nueva versión" Command="{Binding CheckAppUpdateCommand}" />
+                                <Button Content="Actualizar ahora" Command="{Binding UpdateAppNowCommand}" IsVisible="{Binding NewVersionAvailable}" IsEnabled="{Binding !IsBusy}" />
+                                <Button Content="Página del proyecto" Command="{Binding OpenRepoCommand}" />
+                            </StackPanel>
+                        </StackPanel></Border>
+
+                        <Border Classes="card"><StackPanel Spacing="8">
+                            <TextBlock Classes="h" Text="SMAPI" />
+                            <TextBlock TextWrapping="Wrap" Text="{Binding SmapiInfoText}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Comprobar" Command="{Binding CheckSmapiCommand}" />
+                                <Button Content="{Binding SmapiActionText}" Command="{Binding InstallSmapiCommand}" IsEnabled="{Binding !IsBusy}" />
+                            </StackPanel>
+                        </StackPanel></Border>
+
+                        <Border Classes="card"><StackPanel Spacing="8">
+                            <TextBlock Classes="h" Text="Nexus Mods" />
+                            <TextBlock Classes="dim" TextWrapping="Wrap"
+                                       Text="Gratis. Con tu API key y registrando el gestor, al pulsar «Descarga lenta / Mod Manager Download» en Nexus el mod se instala solo. No necesitas Premium." />
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                <TextBox Text="{Binding NexusApiKey}" PasswordChar="•" PlaceholderText="API key personal" />
+                                <Button Grid.Column="1" Content="Obtener clave" Command="{Binding OpenNexusKeyPageCommand}" />
+                                <Button Grid.Column="2" Content="Comprobar" Command="{Binding ValidateNexusKeyCommand}" />
+                            </Grid>
+                            <Button Content="Usar esta aplicación para los enlaces nxm://" Command="{Binding RegisterNxmCommand}" IsEnabled="{Binding CanRegisterNxm}" HorizontalAlignment="Left" />
+                        </StackPanel></Border>
+
+                        <Border Classes="card"><StackPanel Spacing="8">
+                            <TextBlock Classes="h" Text="Sincronización de perfiles" />
+                            <TextBlock Classes="dim" TextWrapping="Wrap"
+                                       Text="Tus perfiles se guardan en TU cuenta (un Gist privado de GitHub) o en una carpeta que ya sincronices. Usa la misma cuenta en cada dispositivo." />
+                            <ComboBox SelectedIndex="{Binding SyncModeIndex}" MinWidth="320">
+                                <ComboBoxItem Content="Desactivada" />
+                                <ComboBoxItem Content="Cuenta de GitHub (Gist privado)" />
+                                <ComboBoxItem Content="Carpeta (Syncthing, Dropbox, OneDrive…)" />
+                            </ComboBox>
+                            <StackPanel Spacing="8" IsVisible="{Binding SyncUsesGist}">
+                                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding GitHubLoginAvailable}">
+                                    <Button Content="Iniciar sesión (abrir navegador)" Command="{Binding GitHubLoginCommand}" CommandParameter="browser" IsEnabled="{Binding !LoginInProgress}" />
+                                    <Button Content="Iniciar sesión con QR (móvil)" Command="{Binding GitHubLoginCommand}" CommandParameter="qr" IsEnabled="{Binding !LoginInProgress}" />
+                                    <Button Content="Cancelar" Command="{Binding CancelLoginCommand}" IsVisible="{Binding LoginInProgress}" />
+                                    <Button Content="Cerrar sesión" Command="{Binding GitHubLogoutCommand}" IsVisible="{Binding GitHubLoggedIn}" />
+                                </StackPanel>
+                                <Border Classes="warn" IsVisible="{Binding LoginInProgress}">
+                                    <StackPanel Spacing="4">
+                                        <Image Source="{Binding LoginQr}" Width="200" Height="200" HorizontalAlignment="Left"
+                                               IsVisible="{Binding LoginQr, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                                        <TextBlock Text="Escribe este código en la página de GitHub:" />
+                                        <TextBlock Text="{Binding LoginCode}" FontSize="28" FontWeight="Bold" />
+                                        <TextBlock Classes="dim" Text="{Binding LoginUrl}" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Classes="dim" TextWrapping="Wrap"
+                                           Text="Alternativa manual: pega un token de GitHub con permiso «gist»." />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBox Text="{Binding GitHubToken}" PasswordChar="•" PlaceholderText="Token de GitHub con permiso «gist»" />
+                                    <Button Grid.Column="1" Content="Crear token" Command="{Binding OpenGitHubTokenPageCommand}" />
+                                </Grid>
+                            </StackPanel>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding SyncUsesFolder}">
+                                <TextBox Text="{Binding SyncFolder}" PlaceholderText="Carpeta compartida" />
+                                <Button Grid.Column="1" Content="Elegir…" Command="{Binding BrowseSyncFolderCommand}" />
+                            </Grid>
+                            <CheckBox Content="Sincronizar al abrir la aplicación" IsChecked="{Binding SyncOnStartup}" />
+                            <CheckBox Content="Subir los cambios automáticamente (unos segundos después de hacerlos)" IsChecked="{Binding SyncAuto}" />
+                        </StackPanel></Border>
+
+                        <Border Classes="card"><StackPanel Spacing="8">
+                            <TextBlock Classes="h" Text="Configuración de los mods" />
+                            <CheckBox IsChecked="{Binding PerProfileConfigs}" Content="Guardar la configuración de los mods en cada perfil" />
+                            <TextBlock Classes="dim" TextWrapping="Wrap"
+                                       Text="Cada perfil recuerda el config.json de sus mods (también lo que cambies dentro del juego) y lo restaura al activarlo. Un perfil nuevo empieza con la configuración que tengas en ese momento." />
+                        </StackPanel></Border>
+
+                        <Border Classes="card"><StackPanel Spacing="8">
+                            <TextBlock Classes="h" Text="Idioma y mando" />
+                            <TextBlock Classes="dim" Text="Idioma de la interfaz" />
+                            <ComboBox ItemsSource="{Binding LanguageNames}" SelectedIndex="{Binding LanguageIndex}" MinWidth="320" />
+                            <TextBlock Classes="dim" TextWrapping="Wrap"
+                                       Text="¿Falta tu idioma? Crea una plantilla, tradúcela y copia el archivo a la carpeta de idiomas; en el repositorio del proyecto puedes enviarla para incluirla en la próxima versión." />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Crear plantilla de traducción" Command="{Binding CreateTranslationTemplateCommand}" />
+                                <Button Content="Abrir carpeta de idiomas" Command="{Binding OpenLanguagesFolderCommand}" />
+                            </StackPanel>
+                            <TextBlock Classes="dim" TextWrapping="Wrap"
+                                       Text="Modo mando: botones grandes y ayuda de botones en pantalla. El mando funciona siempre; este modo solo cambia el tamaño." />
+                            <ComboBox ItemsSource="{Binding ControllerModeNames}" SelectedIndex="{Binding ControllerModeIndex}" MinWidth="320" />
+                            <TextBlock Text="{Binding PadStatus}" TextWrapping="Wrap" Classes="dim" />
+                            <TextBlock Text="{Binding PadLogPath}" TextWrapping="Wrap" Classes="dim" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding RestartNeeded}">
+                                <TextBlock Text="Guarda los ajustes y reinicia para aplicar los cambios." VerticalAlignment="Center" />
+                                <Button Content="Reiniciar ahora" Command="{Binding RestartAppCommand}" />
+                            </StackPanel>
+                        </StackPanel></Border>
+
+                        <Button Content="Guardar ajustes" Command="{Binding SaveSettingsCommand}" HorizontalAlignment="Left" />
+                        <TextBlock Classes="dim" Text="{Binding Platform}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Status bar -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,200" RowDefinitions="Auto,Auto" Margin="0,10,0,0" ColumnSpacing="12">
+            <TextBlock Text="{Binding Status}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="dim" Margin="0,6,0,0" IsVisible="{Binding ShowPadHints}"
+                       Text="A  Seleccionar     B  Atrás     LB / RB  Cambiar pestaña     X  Buscar actualizaciones     Y  Sincronizar     ☰  Jugar" />
+            <ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Progress}"
+                         IsIndeterminate="{Binding ProgressIndeterminate}" IsVisible="{Binding IsBusy}" />
+        </Grid>
+
+        <!-- Mod detail overlay -->
+        <Grid x:Name="DetailOverlay" Grid.RowSpan="4" Margin="-16" Background="#CC000000" IsVisible="{Binding DetailVisible}">
+            <Border Background="#FF202225" CornerRadius="10" Padding="18" Margin="40,24" MinWidth="640" MaxWidth="940" HorizontalAlignment="Center">
+                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+                    <StackPanel>
+                        <TextBlock Text="{Binding DetailTitle}" FontSize="22" FontWeight="Bold" TextWrapping="Wrap" />
+                        <TextBlock Classes="dim" Text="{Binding DetailSubtitle}" TextWrapping="Wrap" />
+                        <TextBlock Classes="dim" Text="{Binding DetailStats}" />
+                        <TextBlock Classes="dim" Text="{Binding DetailTags}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  IsVisible="{Binding DetailHasImages}">
+                        <ItemsControl ItemsSource="{Binding DetailImages}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:GalleryImage">
+                                    <Border CornerRadius="6" ClipToBounds="True">
+                                        <Image Source="{Binding Image}" Height="220" Stretch="Uniform" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <ScrollViewer Grid.Row="2">
+                        <StackPanel Spacing="6">
+                            <ProgressBar IsIndeterminate="True" IsVisible="{Binding DetailLoading}" />
+                            <TextBlock Text="{Binding DetailNote}" Classes="dim" TextWrapping="Wrap" IsVisible="{Binding DetailHasNote}" />
+                            <TextBlock Text="{Binding DetailDescription}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </ScrollViewer>
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <Button Content="Instalar desde Nexus" Command="{Binding InstallDetailCommand}" IsVisible="{Binding DetailHasNexus}" Background="#2E7D32" />
+                        <Button Content="Configurar" Command="{Binding OpenDetailConfigCommand}" IsVisible="{Binding DetailHasConfig}" />
+                        <Button Content="Abrir en Nexus" Command="{Binding OpenDetailInNexusCommand}" IsVisible="{Binding DetailHasNexus}" />
+                        <Button Content="Cerrar" Command="{Binding CloseDetailCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Config.json editor overlay -->
+        <Grid x:Name="ConfigOverlay" Grid.RowSpan="4" Margin="-16" Background="#CC000000" IsVisible="{Binding ConfigVisible}">
+            <Border Background="#FF202225" CornerRadius="10" Padding="18" Margin="40,24" MinWidth="640" MaxWidth="940" HorizontalAlignment="Center">
+                <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="10">
+                    <StackPanel>
+                        <TextBlock Text="{Binding ConfigTitle}" FontSize="22" FontWeight="Bold" TextWrapping="Wrap" />
+                        <TextBlock Classes="dim" Text="{Binding ConfigPath}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1">
+                        <ItemsControl ItemsSource="{Binding ConfigFields}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ConfigFieldItem">
+                                    <Grid ColumnDefinitions="260,*" Margin="0,0,0,6">
+                                        <StackPanel Margin="{Binding Indent}" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Label}" Classes="h" IsVisible="{Binding IsHeader}" Margin="0,10,0,0" />
+                                            <TextBlock Text="{Binding Label}" IsVisible="{Binding !IsHeader}" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding KindHint}" Classes="dim" FontSize="12" IsVisible="{Binding !IsHeader}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                            <CheckBox IsChecked="{Binding BoolValue}" IsVisible="{Binding IsBool}" />
+                                            <TextBox Text="{Binding Text}" IsVisible="{Binding IsText}" />
+                                            <TextBox Text="{Binding Text}" IsVisible="{Binding IsJson}" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="140" />
+                                            <TextBlock Text="{Binding Error}" Foreground="#FF6B6B" IsVisible="{Binding HasError}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock Grid.Row="2" Text="{Binding ConfigMessage}" Foreground="#FFD54F" TextWrapping="Wrap" IsVisible="{Binding HasConfigMessage}" />
+                    <WrapPanel Grid.Row="3" HorizontalAlignment="Right">
+                        <Button Content="Guardar" Command="{Binding SaveConfigCommand}" Background="#2E7D32" Margin="0,0,8,0" />
+                        <Button Content="{Binding RestoreDefaultsText}" Command="{Binding RestoreConfigDefaultsCommand}" Margin="0,0,8,0" />
+                        <Button Content="Abrir carpeta del mod" Command="{Binding OpenConfigFolderCommand}" Margin="0,0,8,0" />
+                        <Button Content="Cancelar" Command="{Binding CloseConfigCommand}" />
+                    </WrapPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Question dialog (dependants / requirements) -->
+        <Grid x:Name="DialogOverlay" Grid.RowSpan="4" Margin="-16" Background="#CC000000" IsVisible="{Binding DialogVisible}">
+            <Border Background="#FF202225" CornerRadius="10" Padding="18" Margin="40,24" MinWidth="520" MaxWidth="720" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="{Binding DialogTitle}" FontSize="20" FontWeight="Bold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding DialogMessage}" TextWrapping="Wrap" />
+                    <ScrollViewer MaxHeight="240">
+                        <ItemsControl ItemsSource="{Binding DialogItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding, StringFormat='•  {0}'}" Margin="8,2,0,2" /></DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0,6,0,0">
+                        <Button Content="{Binding DialogPrimaryText}" Command="{Binding DialogPrimaryCommand}" Background="#2E7D32" Margin="0,0,8,8" />
+                        <Button Content="{Binding DialogSecondaryText}" Command="{Binding DialogSecondaryCommand}" Margin="0,0,8,8" />
+                        <Button Content="Cancelar" Command="{Binding DialogCancelCommand}" Margin="0,0,0,8" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
