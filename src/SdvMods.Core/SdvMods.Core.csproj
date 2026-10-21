@@ -6,6 +6,15 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(NexusEdition)' == 'true'">
+    <!-- Edition hosted on Nexus Mods: no downloads from GitHub (see Edition.cs) -->
+    <DefineConstants>$(DefineConstants);NEXUS_EDITION</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SdvMods.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Community translations live in /translations at the repo root and are embedded here automatically. -->
     <EmbeddedResource Include="..\..\translations\*.json" LogicalName="SdvMods.Core.Localization.%(Filename)%(Extension)" />

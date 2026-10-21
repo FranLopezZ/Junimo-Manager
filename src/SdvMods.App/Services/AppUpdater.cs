@@ -20,7 +20,7 @@ namespace SdvMods.App.Services;
 /// </summary>
 public static class AppUpdater
 {
-    public static bool CanSelfUpdate => NxmRegistration.CanRegister;
+    public static bool CanSelfUpdate => SdvMods.Core.Edition.SelfUpdate && NxmRegistration.CanRegister;
 
     static string AppDir => Path.GetDirectoryName(Environment.ProcessPath!)!;
 

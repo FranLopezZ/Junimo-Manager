@@ -22,7 +22,10 @@ public partial class MainViewModel
     public Func<string, Task>? SetClipboardText { get; set; }
     public Func<Task<string?>>? GetClipboardText { get; set; }
 
-    public string AppVersionText => "v" + AppInfo.Version;
+    public string AppVersionText => "v" + AppInfo.Version + (SdvMods.Core.Edition.IsNexus ? " · Nexus" : "");
+    /// <summary>The edition hosted on Nexus: no self-update and no downloads from GitHub.</summary>
+    public bool IsNexusEdition => SdvMods.Core.Edition.IsNexus;
+    public bool IsNotNexusEdition => !SdvMods.Core.Edition.IsNexus;
     AppRelease? _newRelease;
 
     [ObservableProperty] public partial bool NewVersionAvailable { get; set; }
@@ -33,6 +36,13 @@ public partial class MainViewModel
 
     async Task CheckAppUpdateCoreAsync(bool announce)
     {
+        if (SdvMods.Core.Edition.IsNexus)
+        {
+            NewVersionAvailable = false;
+            AppUpdateInfo = Loc.F("Versión {0} (edición Nexus): las nuevas versiones se descargan desde la página del mod en Nexus Mods.", AppInfo.Version);
+            if (announce) Status = AppUpdateInfo;
+            return;
+        }
         var rel = await AppInfo.LatestReleaseAsync(_http);
         if (rel is not null && AppInfo.IsNewer(rel))
         {
@@ -54,6 +64,7 @@ public partial class MainViewModel
     [RelayCommand] void DownloadNewVersion() => Shell.OpenUrl(_newRelease?.AssetUrl ?? _newRelease?.PageUrl ?? AppInfo.ReleasesUrl);
     [RelayCommand] void OpenReleaseNotes() => Shell.OpenUrl(_newRelease?.PageUrl ?? AppInfo.ReleasesUrl);
     [RelayCommand] void OpenRepo() => Shell.OpenUrl(AppInfo.RepoUrl);
+    [RelayCommand] void OpenNexusPage() => Shell.OpenUrl(SdvMods.Core.Edition.NexusPageUrl);
 
     // ---------------------------------------------------------------- share profiles
 

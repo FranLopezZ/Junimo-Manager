@@ -641,6 +641,13 @@ public partial class MainViewModel : ViewModelBase
     async Task InstallSmapiAsync()
     {
         if (!GameFound) return;
+        if (SdvMods.Core.Edition.IsNexus)
+        {
+            // Nexus edition: nothing is downloaded from outside Nexus; the official SMAPI page is opened instead.
+            Shell.OpenUrl(SdvMods.Core.Edition.SmapiPageUrl);
+            Status = Loc.T("Se abrió la web oficial de SMAPI: descárgalo e instálalo desde allí y vuelve a esta ventana.");
+            return;
+        }
         await RunAsync(Loc.T("Descargando SMAPI…"), async () =>
         {
             var installer = new SmapiInstaller(_http);

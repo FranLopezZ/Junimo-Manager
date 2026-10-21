@@ -238,6 +238,11 @@ public partial class MainViewModel
             SmapiActionText = Loc.T("Reinstalar SMAPI");
             SmapiNeedsAction = false;
         }
+        if (SdvMods.Core.Edition.IsNexus && SmapiNeedsAction)
+        {
+            SmapiActionText = Loc.T("Abrir la web de SMAPI");
+            if (!st.Installed) SmapiBannerText = Loc.T("SMAPI no está instalado: sin él los mods no cargan. Descárgalo e instálalo desde su web oficial y vuelve aquí.");
+        }
         SmapiBannerVisible = SmapiNeedsAction;
     }
 }

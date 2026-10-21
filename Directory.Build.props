@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
     <!-- Single source of the app version; scripts/build-release.ps1 overrides it with -p:Version=. -->
-    <Version>0.5.2</Version>
+    <Version>0.5.3</Version>
   </PropertyGroup>
 </Project>

@@ -84,13 +84,13 @@
                 <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding SmapiBannerText}" />
                     <Button Grid.Column="1" Content="{Binding SmapiActionText}" Command="{Binding InstallSmapiCommand}" IsEnabled="{Binding !IsBusy}" />
-                    <Button Grid.Column="2" Content="Web de SMAPI" Command="{Binding OpenSmapiPageCommand}" />
+                    <Button Grid.Column="2" Content="Web de SMAPI" Command="{Binding OpenSmapiPageCommand}" IsVisible="{Binding IsNotNexusEdition}" />
                 </Grid>
             </Border>
             <Border Classes="warn" IsVisible="{Binding NewVersionAvailable}">
                 <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding NewVersionText}" />
-                    <Button Grid.Column="1" Content="Actualizar ahora" Command="{Binding UpdateAppNowCommand}" IsEnabled="{Binding !IsBusy}" Background="#2E7D32" />
+                    <Button Grid.Column="1" Content="Actualizar ahora" Command="{Binding UpdateAppNowCommand}" IsEnabled="{Binding !IsBusy}" Background="#2E7D32" IsVisible="{Binding IsNotNexusEdition}" />
                     <Button Grid.Column="2" Content="Novedades" Command="{Binding OpenReleaseNotesCommand}" />
                 </Grid>
             </Border>
@@ -396,8 +396,9 @@
                             <TextBlock Classes="h" Text="Junimo Manager" />
                             <TextBlock TextWrapping="Wrap" Text="{Binding AppUpdateInfo}" />
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button Content="Buscar nueva versión" Command="{Binding CheckAppUpdateCommand}" />
+                                <Button Content="Buscar nueva versión" Command="{Binding CheckAppUpdateCommand}" IsVisible="{Binding IsNotNexusEdition}" />
                                 <Button Content="Actualizar ahora" Command="{Binding UpdateAppNowCommand}" IsVisible="{Binding NewVersionAvailable}" IsEnabled="{Binding !IsBusy}" />
+                                <Button Content="Abrir la página del mod en Nexus" Command="{Binding OpenNexusPageCommand}" IsVisible="{Binding IsNexusEdition}" />
                                 <Button Content="Página del proyecto" Command="{Binding OpenRepoCommand}" />
                             </StackPanel>
                         </StackPanel></Border>

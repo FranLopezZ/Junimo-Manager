@@ -26,6 +26,7 @@ public static class AppInfo
     /// <summary>Latest published release, or null if there is none / the repo is unreachable.</summary>
     public static async Task<AppRelease?> LatestReleaseAsync(HttpClient http, CancellationToken ct = default)
     {
+        if (!Edition.SelfUpdate) return null; // the Nexus edition is updated from its Nexus page
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Repo}/releases/latest");

@@ -1,6 +1,6 @@
 # Debug helper: launches the Debug build, waits, and saves a screenshot of its window.
 # Usage: powershell -File scripts/dev/shot.ps1 -Out shot.png [-Tab 1] [-Lang en] [-Pad] [-Config <settings folder>] [-Keys Down,Down,Return] [-Show "config:Mod name"]
-param([string]$Out, [int]$Tab = 0, [string]$Lang = "", [switch]$Pad, [int]$Wait = 12, [string]$Config = "", [string[]]$Keys = @(), [string]$Show = "")
+param([string]$Out, [int]$Tab = 0, [string]$Lang = "", [switch]$Pad, [int]$Wait = 12, [string]$Config = "", [string[]]$Keys = @(), [string]$Show = "", [string]$Exe = "")
 Add-Type -AssemblyName System.Drawing
 Add-Type @"
 using System; using System.Runtime.InteropServices;
@@ -16,7 +16,8 @@ if ($Lang) { $env:JUNIMO_LANG = $Lang }
 if ($Pad) { $env:SteamGameId = "1" }
 if ($Config) { $env:JUNIMO_CONFIG_DIR = $Config }
 if ($Show) { $env:JUNIMO_DEBUG_SHOW = $Show }
-$p = Start-Process -FilePath (Join-Path $root "src\SdvMods.App\bin\Debug\net10.0\JunimoManager.exe") -PassThru
+$exePath = if ($Exe) { $Exe } else { Join-Path $root "src\SdvMods.App\bin\Debug\net10.0\JunimoManager.exe" }
+$p = Start-Process -FilePath $exePath -PassThru
 Start-Sleep $Wait
 $p.Refresh(); $h = $p.MainWindowHandle
 # Optional key presses (posted straight to the window, so no interactive desktop is needed)

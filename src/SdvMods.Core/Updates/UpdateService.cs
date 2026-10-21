@@ -57,7 +57,7 @@ public sealed class UpdateService
             var repo = UpdateKey.GitHubRepo(m.Keys) ?? i.GitHubRepo;
             var nexusId = UpdateKey.NexusId(m.Keys) ?? i.NexusId;
 
-            if (repo is not null)
+            if (repo is not null && Edition.DownloadsFromGitHub)   // the Nexus edition never fetches mods from outside Nexus
             {
                 var asset = await SafeAsync(() => _github.FindAsync(repo, i.LatestVersion, m.Name, m.Id, ct));
                 if (asset is not null)

@@ -101,7 +101,7 @@ public partial class MainViewModel
     [RelayCommand]
     async System.Threading.Tasks.Task UpdateAppNowAsync()
     {
-        if (_newRelease is not { } rel) return;
+        if (!SdvMods.Core.Edition.SelfUpdate || _newRelease is not { } rel) return;
         if (!AppUpdater.CanSelfUpdate || rel.AssetUrl is null) { DownloadNewVersion(); return; }
         await RunAsync(Loc.F("Descargando Junimo Manager {0}…", rel.Version), async () =>
         {
